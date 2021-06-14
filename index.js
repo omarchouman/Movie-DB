@@ -82,6 +82,39 @@ app.get("/get", (req, res) => {
     })
 })
 
+// Ordering By Date 
+app.get("/get/movies/by-date", (req, res) => {
+    const sortedMoviesByDate = [...movies];
+    sortedMoviesByDate.sort((b, a) => (a.year > b.year) ? 1 : ((b.year > a.year) ? -1 : 0));
+    const final = {
+        status: 200,
+        data: sortedMoviesByDate
+    }
+    res.send(final);
+})
+
+// Ordering By Rating
+app.get("/get/movies/by-rating", (req, res) => {
+    const sortedMoviesByRating = [...movies];
+    sortedMoviesByRating.sort((b, a) => (a.rating > b.rating) ? 1 : ((b.rating > a.rating) ? -1 : 0));
+    const final = {
+        status: 200,
+        data: sortedMoviesByRating
+    }
+    res.send(final);
+})
+
+// Ordering By Title
+app.get("/get/movies/by-title", (req, res) => {
+    const sortedMoviesByTitle = [...movies];
+    sortedMoviesByTitle.sort((b, a) => (a.title > b.title) ? 1 : ((b.title > a.title) ? -1 : 0));
+    const final = {
+        status: 200,
+        data: sortedMoviesByTitle
+    }
+    res.send(final);
+})
+
 // Update Route
 app.get("/edit", (req, res) => {
 
