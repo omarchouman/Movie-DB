@@ -70,9 +70,43 @@ const movies = [
 ]
 
 // Create Route
-app.get("/add", (req, res) => {
-
-})
+app.post('/movies/add', (req, res) => {
+    if(req.query){
+      let final, status, yearBoolean = false, yearString, yearInt, data, message, error, rating = 4
+      if(req.query.year) {
+        yearString = req.query.year
+        yearInt = parseInt(req.query.year)
+        if(yearString.length <= 4 && !isNaN(yearInt)) {
+          yearBoolean = true
+        }
+      }
+      if(!req.query.title || !yearBoolean) {
+        status = 403
+        error = true
+        message = 'You cannot create a movie without providing a title and a year'
+        final = {
+          status: status,
+          error: error,
+          message: message,
+        }
+      }
+      else {
+        if(req.query.rating) rating = req.query.rating
+        const newMovie = {
+          title: req.query.title,
+          year: req.query.year,
+          rating: rating
+        }
+        status = 200
+        movies.push(newMovie)
+        final = {
+          status: status,
+          data: movies
+        }
+      }
+      res.send(final)
+    }
+  })
 
 // Read All Movies Route
 app.get("/get", (req, res) => {
