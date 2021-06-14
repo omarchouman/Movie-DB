@@ -175,8 +175,22 @@ app.get("/edit", (req, res) => {
 })
 
 // Delete Route
-app.get("/delete", (req, res) => {
-
+app.delete("/movies/delete/:id", (req, res) => {
+    let id = parseInt(req.params.id);
+    if(id < 0 || id >= movies.length || isNaN(id)){
+        res.send({
+            status: 404,
+            error: true,
+            message: "The movie id does not exist"
+        })
+    }
+    else {
+        movies.splice(req.params.id, 1)
+        res.send({
+            status: 200,
+            data: movies
+        })
+    }
 })
 
 app.listen(3000);
