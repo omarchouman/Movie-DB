@@ -74,12 +74,32 @@ app.get("/add", (req, res) => {
 
 })
 
-// Read Route
+// Read All Movies Route
 app.get("/get", (req, res) => {
     res.send({
         status: 200, 
         data: movies 
     })
+})
+
+app.get("/get/movies/id/:id", (req, res) => {
+    let status, final
+    if(req.params.id >= 0 && req.params.id < movies.length) {
+        status = 200;
+        final = {
+            status: status,
+            data: movies[req.params.id]
+        }
+    } 
+    else {
+        status = 404;
+        final = {
+            status: status,
+            error: true,
+            message: `The movie ${req.params.id} doesn't exist`
+        }
+    }
+    res.send(final);
 })
 
 // Ordering By Date 
