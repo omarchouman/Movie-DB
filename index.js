@@ -26,6 +26,16 @@ app.get("/time", (req, res) => {
     res.send(final);
 })
 
+// Hello Route
+app.get("/hello", (req, res) => {
+    const message = "Hello, "
+    const final = {
+        status: 200,
+        message: message
+    }
+    res.send(final)
+})
+
 // Hello ID Route
 app.get("/hello/:id", (req, res) => {
     const message = `Hello, ${req.params.id}`
