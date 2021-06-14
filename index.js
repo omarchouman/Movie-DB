@@ -82,7 +82,7 @@ app.get("/get", (req, res) => {
     })
 })
 
-app.get("/get/movies/id/:id", (req, res) => {
+app.get("/movies/get/id/:id", (req, res) => {
     let status, final
     if(req.params.id >= 0 && req.params.id < movies.length) {
         status = 200;
@@ -103,7 +103,7 @@ app.get("/get/movies/id/:id", (req, res) => {
 })
 
 // Ordering By Date 
-app.get("/get/movies/by-date", (req, res) => {
+app.get("/movies/get/by-date", (req, res) => {
     const sortedMoviesByDate = [...movies];
     sortedMoviesByDate.sort((b, a) => (a.year > b.year) ? 1 : ((b.year > a.year) ? -1 : 0));
     const final = {
@@ -114,7 +114,7 @@ app.get("/get/movies/by-date", (req, res) => {
 })
 
 // Ordering By Rating
-app.get("/get/movies/by-rating", (req, res) => {
+app.get("/movies/get/by-rating", (req, res) => {
     const sortedMoviesByRating = [...movies];
     sortedMoviesByRating.sort((b, a) => (a.rating > b.rating) ? 1 : ((b.rating > a.rating) ? -1 : 0));
     const final = {
@@ -125,7 +125,7 @@ app.get("/get/movies/by-rating", (req, res) => {
 })
 
 // Ordering By Title
-app.get("/get/movies/by-title", (req, res) => {
+app.get("/movies/get/by-title", (req, res) => {
     const sortedMoviesByTitle = [...movies];
     sortedMoviesByTitle.sort((b, a) => (a.title > b.title) ? 1 : ((b.title > a.title) ? -1 : 0));
     const final = {
