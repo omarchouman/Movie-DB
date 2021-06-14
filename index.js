@@ -170,8 +170,35 @@ app.get("/movies/get/by-title", (req, res) => {
 })
 
 // Update Route
-app.get("/edit", (req, res) => {
-
+app.put("/movies/edit/:id", (req, res) => {
+    let id = parseInt(req.params.id);
+    if(id < 0 || id >= movies.length || isNaN(id)){
+        res.send({
+            status:404,
+            error: true,
+            message: "The movie id does not exist"
+        })
+    }
+    else {
+        if(req.query) {
+            let editedMovie = movies[id]
+            for (let property in req.query) {
+                if(editedMovie.hasOwnProperty(property)) {
+                    if(property == "rating") {
+                        editedMovie[property] = parseInt(req.query[property]);
+                    }
+                    else {
+                        editedMovie[property] = req.query[property]
+                    }
+                }
+            movies[id] = editedMovie;
+            res.send({
+                status: 200,
+                data: movies
+            })
+            }
+        }
+    }
 })
 
 // Delete Route
