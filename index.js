@@ -1,6 +1,15 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const mongoose = require("mongoose");
 const app = express();
+
+const Movie = require("./db");
+
+// DB CONNECTION
+mongoose.connect("mongodb+srv://moviedb:PX4s0RlMJy3fXBXd@cluster0.0ccsw.mongodb.net/myFirstDatabase?retryWrites=true&w=majority", {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+});
 
 // Home Route
 app.get("/", (req, res) => {
@@ -108,16 +117,21 @@ app.post('/movies/add', (req, res) => {
       }
       else {
         if(req.query.rating) rating = req.query.rating
-        const newMovie = {
-          title: req.query.title,
-          year: req.query.year,
-          rating: rating
-        }
+        
+        const newMovie = new Movie({
+            title: req.query.title,
+            year: req.query.year,
+            rating: rating
+        })
+        newMovie.save().then(result => {
+            console.log(result);
+        })
+        .catch(err => console.log(err));
         status = 200
         movies.push(newMovie)
         final = {
           status: status,
-          data: movies
+          data: newMovie
         }
       }
       res.send(final)
@@ -126,135 +140,171 @@ app.post('/movies/add', (req, res) => {
 
 // Read All Movies Route
 app.get("/movies/get", (req, res) => {
-    res.send({
-        status: 200, 
-        data: movies 
+    Movie.find({}).sort({title: 1}).exec(function(err, moviess) {
+        res.send({
+        status:200,
+        message: moviess
+        })
     })
 })
 
+// Read A Certain Movie By Id Route
 app.get("/movies/get/id/:id", (req, res) => {
-    let status, final
-    if(req.params.id >= 0 && req.params.id < movies.length) {
-        status = 200;
-        final = {
-            status: status,
-            data: movies[req.params.id]
-        }
-    } 
-    else {
-        status = 404;
-        final = {
-            status: status,
-            error: true,
-            message: `The movie ${req.params.id} doesn't exist`
-        }
-    }
-    res.send(final);
+
+    Movie.findById({_id: req.params.id}).then(function(moviess){
+        res.send({
+            status:200,
+            data:moviess
+        })
+    }).catch((err) => res.send({
+        status:404,
+        error:true,
+        error2:err,
+        message: "no movie with such ID"
+    }));
 })
 
-// Ordering By Date 
-app.get("/movies/get/by-date", (req, res) => {
-    const sortedMoviesByDate = [...movies];
-    sortedMoviesByDate.sort((b, a) => (a.year > b.year) ? 1 : ((b.year > a.year) ? -1 : 0));
-    const final = {
-        status: 200,
-        data: sortedMoviesByDate
+app.get("/movies/get/:sort", (req, res) => {
+    if(req.params.sort == "by-date"){
+        Movie.find({}).sort({year: 'desc'}).exec(function(err, moviess) {
+            res.send({
+                status:200,
+                data: moviess
+            })
+         })
+        
+    }else if(req.params.sort == "by-rating"){
+        Movie.find({}).sort({rating: 'desc'}).exec(function(err, moviess) {
+            res.send({
+                status:200,
+                data: moviess
+            })
+         })
+    }else if(req.params.sort == "by-title"){
+        Movie.find({}).sort({title: 1}).exec(function(err, moviess) {
+            res.send({
+                status:200,
+                data: moviess
+            })
+         })
+    }else {
+        res.send({
+            status:404,
+            error:true,
+            message:"Invalid sorting request"
+        })
     }
-    res.send(final);
-})
 
-// Ordering By Rating
-app.get("/movies/get/by-rating", (req, res) => {
-    const sortedMoviesByRating = [...movies];
-    sortedMoviesByRating.sort((b, a) => (a.rating > b.rating) ? 1 : ((b.rating > a.rating) ? -1 : 0));
-    const final = {
-        status: 200,
-        data: sortedMoviesByRating
-    }
-    res.send(final);
-})
-
-// Ordering By Title
-app.get("/movies/get/by-title", (req, res) => {
-    const sortedMoviesByTitle = [...movies];
-    sortedMoviesByTitle.sort((b, a) => (a.title > b.title) ? 1 : ((b.title > a.title) ? -1 : 0));
-    const final = {
-        status: 200,
-        data: sortedMoviesByTitle
-    }
-    res.send(final);
 })
 
 // Update Route
+app.put("/movies/edit", (req, res) => {
+    jwt.verify(req.token, "secretkey", (err, authData) => {
+        res.send({
+            status:404,
+            error: err,
+            message:"Cannot Update without a movie ID",
+        })
+    })
+})
+
+
+// Update Route
 app.put("/movies/edit/:id", verifyToken, (req, res) => {
-    let id = parseInt(req.params.id);
     jwt.verify(req.token, "secretkey", (err, authData) => {
         if(err) {
             res.sendStatus(403);
         } 
         else {
-            if(id < 0 || id >= movies.length || isNaN(id)){
-                res.send({
-                    status:404,
-                    error: true,
-                    message: "The movie id does not exist"
-                })
-            }
-            else {
-                if(req.query) {
-                    let editedMovie = movies[id]
-                    for (let property in req.query) {
-                        if(editedMovie.hasOwnProperty(property)) {
-                            if(property == "rating") {
-                                editedMovie[property] = parseInt(req.query[property]);
-                            }
-                            else {
-                                editedMovie[property] = req.query[property]
-                            }
-                        }
-                    movies[id] = editedMovie;
-                    res.send({
-                        status: 200,
-                        data: movies,
-                        authData: authData
-                    })
+            let check = {};
+            let querry = req.query;
+        
+            function check_data(data){
+                if((data).hasOwnProperty('title') || (data).hasOwnProperty('year') || (data).hasOwnProperty('rating')){
+                    if((data).hasOwnProperty('title') && data.title != ""){
+                        check.title = true
+                    }else if(data.title == ""){
+                        check.title = false
+                    }else {
+                        delete check.title
+                    }
+                    if ((data).hasOwnProperty('year') && Number.isInteger(Number(data.year)) && (data.year).length == 4){
+                        check.year = true
+                    }else if((data).hasOwnProperty('year') && (data.year).length != 4){
+                        check.year = false
+                    }
+                    if((data).hasOwnProperty('rating') && data.rating < 9.99 && data.rating > 0){
+                        check.rating = true
+                    }else if(data.rating > 9.99 || data.rating < 0){
+                        check.rating = false
                     }
                 }
+            }
+                check_data(querry);
+        
+                if (Object.values(check).indexOf(false) > -1) {
+                    let error = Object.keys(check).find(key => check[key] === false)
+                    res.send({
+                        status:404,
+                        error:true,
+                        message:"invalid " + error + " Input",
+                    })
+                }else {
+                   Movie.findOneAndUpdate({_id: req.params.id}, querry).then(function(){
+                    Movie.find({}).then(function(allmovies){
+                        res.send({
+                            status:200,
+                            movies_list : allmovies
+                        })
+                    });
+                   }).catch((err) => {res.send({
+                    status:404,
+                    error:true,
+                    message:'wrong id'
+             })});
+                
             }
         }
     })
 })
 
+// Delete Error
+app.delete("/movies/delete", verifyToken, (req, res) => {
+    jwt.verify(req.token, "secretkey", (err, authData) => {
+        res.send({
+            status:404,
+            error: err,
+            message:"Cannot Delete without a movie ID",
+        })
+    })
+})
+
 // Delete Route
 app.delete("/movies/delete/:id", verifyToken, (req, res) => {
-    let id = parseInt(req.params.id);
     jwt.verify(req.token, "secretkey", (err, authData) => {
-        if(err) {
-            res.sendStatus(403)
-        } 
-        else {
-            if(id < 0 || id >= movies.length || isNaN(id)){
+        Movie.findByIdAndRemove({_id: req.params.id}).then(function(){
+            Movie.find({}).then(function(allmovies){
                 res.send({
-                    status: 404,
-                    error: true,
-                    message: "The movie id does not exist"
+                    status:200,
+                    movies_list : allmovies
                 })
-            }
-            else {
-                movies.splice(req.params.id, 1)
-                res.send({
-                    status: 200,
-                    data: movies,
-                    authData: authData
-                })
-            }
-        }
+            }).catch((err) => res.send({
+                     status:404,
+                     error:true,
+                     message:err
+                 }))
+        }).catch((err) => res.send({
+         status:404,
+         error:true,
+         error2: err,
+         message:"the movie with id "+ req.params.id + " does not exist"
+     }))
     })  
 })
 
 // Logging in the users so they can get the token
 app.post("/users/login", (req, res) => {
-    jwt.sign({users}, "secretkey", {expiresIn: "120s"}, (err, token) => {
+    jwt.sign({users}, "secretkey", {expiresIn: "1200s"}, (err, token) => {
         res.json({
             token
         });
