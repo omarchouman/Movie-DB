@@ -1,5 +1,5 @@
 const express = require("express");
-
+const jwt = require("jsonwebtoken");
 const app = express();
 
 // Home Route
@@ -79,6 +79,12 @@ const movies = [
     { title: 'الإرهاب والكباب‎', year: 1992, rating: 6.2 }
 ]
 
+// Users Database
+const users = [
+    {  username: "omar", email: "omar@gmail.com" },
+    {  username: "sami", email: "sami@gmail.com" }
+]
+
 // Create Route
 app.post('/movies/add', (req, res) => {
     if(req.query){
@@ -119,7 +125,7 @@ app.post('/movies/add', (req, res) => {
   })
 
 // Read All Movies Route
-app.get("/get", (req, res) => {
+app.get("/movies/get", (req, res) => {
     res.send({
         status: 200, 
         data: movies 
@@ -180,54 +186,143 @@ app.get("/movies/get/by-title", (req, res) => {
 })
 
 // Update Route
-app.put("/movies/edit/:id", (req, res) => {
+app.put("/movies/edit/:id", verifyToken, (req, res) => {
     let id = parseInt(req.params.id);
-    if(id < 0 || id >= movies.length || isNaN(id)){
-        res.send({
-            status:404,
-            error: true,
-            message: "The movie id does not exist"
-        })
-    }
-    else {
-        if(req.query) {
-            let editedMovie = movies[id]
-            for (let property in req.query) {
-                if(editedMovie.hasOwnProperty(property)) {
-                    if(property == "rating") {
-                        editedMovie[property] = parseInt(req.query[property]);
-                    }
-                    else {
-                        editedMovie[property] = req.query[property]
+    jwt.verify(req.token, "secretkey", (err, authData) => {
+        if(err) {
+            res.sendStatus(403);
+        } 
+        else {
+            if(id < 0 || id >= movies.length || isNaN(id)){
+                res.send({
+                    status:404,
+                    error: true,
+                    message: "The movie id does not exist"
+                })
+            }
+            else {
+                if(req.query) {
+                    let editedMovie = movies[id]
+                    for (let property in req.query) {
+                        if(editedMovie.hasOwnProperty(property)) {
+                            if(property == "rating") {
+                                editedMovie[property] = parseInt(req.query[property]);
+                            }
+                            else {
+                                editedMovie[property] = req.query[property]
+                            }
+                        }
+                    movies[id] = editedMovie;
+                    res.send({
+                        status: 200,
+                        data: movies,
+                        authData: authData
+                    })
                     }
                 }
-            movies[id] = editedMovie;
-            res.send({
-                status: 200,
-                data: movies
-            })
             }
         }
-    }
+    })
 })
 
 // Delete Route
-app.delete("/movies/delete/:id", (req, res) => {
+app.delete("/movies/delete/:id", verifyToken, (req, res) => {
     let id = parseInt(req.params.id);
-    if(id < 0 || id >= movies.length || isNaN(id)){
-        res.send({
-            status: 404,
-            error: true,
-            message: "The movie id does not exist"
-        })
-    }
-    else {
-        movies.splice(req.params.id, 1)
-        res.send({
-            status: 200,
-            data: movies
-        })
-    }
+    jwt.verify(req.token, "secretkey", (err, authData) => {
+        if(err) {
+            res.sendStatus(403)
+        } 
+        else {
+            if(id < 0 || id >= movies.length || isNaN(id)){
+                res.send({
+                    status: 404,
+                    error: true,
+                    message: "The movie id does not exist"
+                })
+            }
+            else {
+                movies.splice(req.params.id, 1)
+                res.send({
+                    status: 200,
+                    data: movies,
+                    authData: authData
+                })
+            }
+        }
+    })  
 })
+
+// Logging in the users so they can get the token
+app.post("/users/login", (req, res) => {
+    jwt.sign({users}, "secretkey", {expiresIn: "120s"}, (err, token) => {
+        res.json({
+            token
+        });
+    });
+});
+
+// Get All Users Route
+app.get("/users/get", (req, res) => {
+    res.send({
+        users: users,
+        status: 200
+    })
+})
+
+// Get A Certain User Route
+app.get("/users/get/:id", (req, res) => {
+    status = 200;
+        final = {
+            status: status,
+            data: users[req.params.id]
+        }
+    res.send(final);
+})
+
+// Create A New User Route 
+app.post("/users/add", (req, res) => {
+    const user = [
+        {
+            username: req.query.username,
+            email: req.query.email
+        }
+    ]
+
+    status = 200;
+    users.push(user);
+
+    final = {
+        status: status,
+        data: users
+    }
+
+    res.send(final);
+})
+
+
+// Delete A Certain User Route
+app.delete("/users/delete/:id", (req, res) => {
+    users.splice(req.params.id, 1);
+    final = {
+        status: 200,
+        data: users
+    }
+
+    res.send(final);
+})
+
+// Verify Token
+function verifyToken(req, res, next) {
+    const bearerHeader = req.headers['authorization'];
+    if(typeof bearerHeader !== 'undefined') {
+      const bearer = bearerHeader.split(' ');
+      const bearerToken = bearer[1];
+      req.token = bearerToken;
+      next();
+    } else {
+      // Forbidden
+      res.sendStatus(403);
+    }
+  }
 
 app.listen(3000);
